@@ -8,11 +8,13 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -24,10 +26,10 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
-import com.google.android.gms.maps.model.Polyline;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
     private GoogleMap mMap;
@@ -36,15 +38,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Marker homeMarker;
     private Marker destMarker;
 
-    private Location test;
+    ArrayList<LatLng> locations = new ArrayList<LatLng>();
+
 
     public static Integer count = 0;
+
+    public static Double destLat = 0.0;
+    public static Double destLong = 0.0;
+
 
     public static Double homeLat = 0.0;
     public static Double homeLong = 0.0;
 
 
-    Polyline line;
+   // Polyline line;
     Polygon shape;
     private static final int POLYGON_SIDES = 4;
     List<Marker> markers = new ArrayList();
@@ -82,7 +89,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onLocationChanged(Location location) {
                 setHomeMarker(location);
-                test = location;
+
             }
 
             @Override
@@ -111,12 +118,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
             @Override
             public void onMapLongClick(LatLng latLng) {
-//                Location location = new Location("Your Destination");
-//                location.setLatitude(latLng.latitude);
-//                location.setLongitude(latLng.longitude);
                 // set marker
                 count += 1;
+                locations.add(latLng);
                 setMarker(latLng);
+
+
 
             }
 
@@ -131,7 +138,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     options = new MarkerOptions().position(latLng)
                             .title("A").draggable(true).snippet("Distance from Source is "+ String.valueOf(results[0]));
-
+                    markers.add(mMap.addMarker(options));
 
                 }
 
@@ -140,7 +147,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Location.distanceBetween(homeLat,homeLong,latLng.latitude,latLng.longitude,results);
 
                      options = new MarkerOptions().position(latLng)
-                            .title("B").draggable(true).snippet(String.valueOf(results[0]));
+                            .title("B").draggable(true).snippet("Distance from Source is "+String.valueOf(results[0]));
+                    markers.add(mMap.addMarker(options));
                 }
 
 
@@ -150,7 +158,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Location.distanceBetween(homeLat,homeLong,latLng.latitude,latLng.longitude,results);
 
                     options = new MarkerOptions().position(latLng)
-                            .title("C").draggable(true).snippet(String.valueOf(results[0]));
+                            .title("C").draggable(true).snippet("Distance from Source is "+String.valueOf(results[0]));
+                    markers.add(mMap.addMarker(options));
                 }
 
 
@@ -159,10 +168,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Location.distanceBetween(homeLat,homeLong,latLng.latitude,latLng.longitude,results);
 
                     options = new MarkerOptions().position(latLng)
-                            .title("D").draggable(true).snippet(String.valueOf(results[0]));
+                            .title("D").draggable(true).snippet("Distance from Source is "+String.valueOf(results[0]));
+                    markers.add(mMap.addMarker(options));
                 }
-                else {
+                else if(count > 4) {
                     count = 0;
+                    clearMap();
                 }
                 /*if (destMarker != null) clearMap();
 
@@ -171,14 +182,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 drawLine();*/
 
                 // check if there are already the same number of markers, we clear the map.
-                if (markers.size() == POLYGON_SIDES)
-                    clearMap();
+//                if (markers.size() == POLYGON_SIDES)
+//                    clearMap();
 
 
-                markers.add(mMap.addMarker(options));
+
 
                 if (markers.size() == POLYGON_SIDES)
                     drawShape();
+
+
+                markers.get(0).getPosition();
             }
 
             private void drawShape() {
@@ -187,11 +201,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         .strokeColor(Color.RED)
                         .strokeWidth(5);
 
+
                 for (int i=0; i<POLYGON_SIDES; i++) {
                     options.add(markers.get(i).getPosition());
                 }
 
                 shape = mMap.addPolygon(options);
+                shape.setClickable(true);
 
             }
 
@@ -221,11 +237,34 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }*/
         });
 
-        googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-            @Override
-            public void onMapClick(@NonNull LatLng latLng) {
+//        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+//            @Override
+//            public void onMapClick(@NonNull LatLng latLng) {
 //                destLat = latLng.latitude;
 //                destLong = latLng.longitude;
+//
+//                showAddress(latLng);
+//
+//
+//            }
+//        });
+
+        mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(@NonNull Marker marker) {
+
+                showAddress(marker.getPosition());
+
+                return false;
+            }
+        });
+
+        mMap.setOnPolygonClickListener(new GoogleMap.OnPolygonClickListener() {
+            @Override
+            public void onPolygonClick(@NonNull Polygon polygon) {
+
+                getTotal();
+
             }
         });
     }
@@ -270,6 +309,57 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, locationListener);
             }
         }
+    }
+    public void showAddress(LatLng latLng){
+
+        destLat = latLng.latitude;
+        destLong = latLng.longitude;
+
+        String address = "Could not find the address";
+
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        try {
+            List<Address> addressList = geocoder.getFromLocation(destLat, destLong, 1);
+            if (addressList != null && addressList.size() > 0) {
+                address = "\n";
+
+                // street name
+                if (addressList.get(0).getThoroughfare() != null)
+                    address += addressList.get(0).getThoroughfare() + "\n";
+                if (addressList.get(0).getLocality() != null)
+                    address += addressList.get(0).getLocality() + " ";
+                if (addressList.get(0).getPostalCode() != null)
+                    address += addressList.get(0).getPostalCode() + " ";
+                if (addressList.get(0).getAdminArea() != null)
+                    address += addressList.get(0).getAdminArea();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+//                addressText.setText("Address: " + address);
+        Toast.makeText(getApplicationContext(),"Address : "+address,Toast.LENGTH_LONG).show();
+
+    }
+
+    public void getTotal(){
+
+        float results1[] = new float[1];
+        float results2[] = new float[1];
+        float results3[] = new float[1];
+        float results4[] = new float[1];
+
+        float total;
+
+        Location.distanceBetween(locations.get(0).latitude,locations.get(0).longitude,locations.get(1).latitude,locations.get(1).longitude,results1);
+        Location.distanceBetween(locations.get(1).latitude,locations.get(1).longitude,locations.get(2).latitude,locations.get(2).longitude,results2);
+        Location.distanceBetween(locations.get(2).latitude,locations.get(2).longitude,locations.get(3).latitude,locations.get(3).longitude,results3);
+        Location.distanceBetween(locations.get(3).latitude,locations.get(3).longitude,locations.get(0).latitude,locations.get(0).longitude,results4);
+
+        total = (results1[0]+results2[0]+results3[0]+results4[0])/1000;
+//
+        Toast.makeText(getApplicationContext(),"Total Distance : "+String.valueOf(total)+" Kms",Toast.LENGTH_LONG).show();
+
     }
 
 
